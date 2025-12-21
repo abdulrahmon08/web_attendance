@@ -2,9 +2,9 @@
 require_once './session.php';
 
 
-if(@!$_SESSION['student']){
-    redirect('../index.php');
-}
+// if(@!$_SESSION['student']){
+//     redirect('../index.php');
+// }
 
 $student = $_SESSION['student'];
 
@@ -75,7 +75,7 @@ $student = $_SESSION['student'];
                         <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a></li>
                         <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        <li><a class="dropdown-item" href="../index.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
                     </ul>
                 </div>
             </div>
