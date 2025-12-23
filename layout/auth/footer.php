@@ -1,6 +1,6 @@
     </main>
     
-    <footer class="bg-light py-4 mt-auto">
+    <footer class="bg-light py-2 mt-auto">
         <div class="container">
             <div class="row">
                 <div class="col-md-6 text-center text-md-start">

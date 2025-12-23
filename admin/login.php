@@ -34,8 +34,8 @@ require_once '../layout/auth/header.php';
             <div class="card shadow-lg border-0 mt-5">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
-                        <i class="bi bi-person-lock text-primary" style="font-size: 4rem;"></i>
-                        <h2 class="mt-3 mb-1">Admin Login</h2>
+                        <i class="bi bi-person-lock text-primary" style="font-size: 3rem;"></i>
+                        <h3 class="mt-3 mb-1">Admin Login</h3>
                         <p class="text-muted">Enter your credentials to continue</p>
                     </div>
 
@@ -57,9 +57,6 @@ require_once '../layout/auth/header.php';
                             </button>
                         </div>
                     </form>
-                </div>
-                <div class="card-footer text-center py-3">
-                    <div class="small"><a href="index.php">Go back to home</a></div>
                 </div>
             </div>
         </div>

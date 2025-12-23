@@ -12,7 +12,7 @@ $today = date('Y-m-d');
 $day_num = (int)date('N');
 $is_weekday = ($day_num >= 1 && $day_num <= 5);
 
-// Check if attendance is open
+// Fetch attendance date
 $stmt = $conn->prepare("
     SELECT opened_at, status 
     FROM attendance_dates 
@@ -26,10 +26,13 @@ $attendance_open = $attendance_date && $attendance_date['status'] === 'Open';
 $current_status = null;
 $grade = null;
 $check_in_time = null;
+$checkout_time = null;
+$remaining_minutes = null;
+$can_checkout = false;
 
-if ($attendance_open || $attendance_date) {
+if ($attendance_date) {
     $stmt = $conn->prepare("
-        SELECT status, grade, check_in_time
+        SELECT status, grade, check_in_time, checkout_time
         FROM attendance 
         WHERE student_id = ? AND attendance_date = ?
     ");
@@ -40,6 +43,23 @@ if ($attendance_open || $attendance_date) {
         $current_status = $attendance_record['status'];
         $grade = $attendance_record['grade'];
         $check_in_time = $attendance_record['check_in_time'];
+        $checkout_time = $attendance_record['checkout_time'];
+    }
+
+    if ($attendance_open) {
+        $opened_at = strtotime($attendance_date['opened_at']);
+        $now = time();
+        $diff = $now - $opened_at;
+        $remaining_minutes = max(0, 60 - floor($diff / 60));
+
+        if ($diff >= 3600) {
+            $attendance_open = false; // auto-close after 1 hour
+        }
+    }
+
+    // Check if student can checkout (already present and not checked out)
+    if ($current_status === 'Present' && !$checkout_time) {
+        $can_checkout = true;
     }
 }
 
@@ -71,8 +91,8 @@ require_once '../layout/student/header.php';
                                 <div class="alert alert-info">Weekend: Attendance not required.</div>
                                 <a href="index.php" class="btn btn-outline-secondary mt-3">Back to Dashboard</a>
 
-                            <?php elseif (!$attendance_open): ?>
-                                <div class="alert alert-warning">Attendance not opened by admin.</div>
+                            <?php elseif (!$attendance_open && !$current_status): ?>
+                                <div class="alert alert-warning">Attendance not opened or closed by admin.</div>
                                 <a href="index.php" class="btn btn-outline-secondary mt-3">Back to Dashboard</a>
 
                             <?php elseif ($current_status === 'Present'): ?>
@@ -81,17 +101,40 @@ require_once '../layout/student/header.php';
                                     Attendance confirmed! Grade: <strong><?= $grade ?>%</strong><br>
                                     Checked in at: <?= $check_in_time ? date('h:i A', strtotime($check_in_time)) : '--:--' ?>
                                 </div>
+
+                                <?php if ($can_checkout): ?>
+                                    <h4>Checkout</h4>
+                                    <form action="checkout_process.php" method="post">
+                                        <button type="submit" name="confirm_checkout" class="btn btn-warning btn-lg">
+                                            Check Out
+                                        </button>
+                                    </form>
+                                <?php elseif ($checkout_time): ?>
+                                    <div class="alert alert-info mt-2">
+                                        You have checked out at <?= date('h:i A', strtotime($checkout_time)) ?>
+                                    </div>
+                                <?php endif; ?>
+
                                 <a href="index.php" class="btn btn-primary mt-3">Go to Dashboard</a>
 
                             <?php else: ?>
                                 <i class="bi bi-calendar2-check text-primary mb-3" style="font-size:4rem;"></i>
-                                <div class="alert alert-danger">Your current status is <strong>Absent</strong>.</div>
-                                <h4>Confirm Attendance</h4>
-                                <form action="mark_attendance_process.php" method="post">
-                                    <button type="submit" name="confirm_attendance" class="btn btn-primary btn-lg">
-                                        Mark as Present
-                                    </button>
-                                </form>
+                                <div class="alert alert-danger mb-3">Your current status is <strong>Absent</strong>.</div>
+
+                                <?php if ($remaining_minutes <= 0): ?>
+                                    <div class="alert alert-danger">Attendance window has closed. Grade: 0%</div>
+                                <?php else: ?>
+                                    <h4>Confirm Attendance</h4>
+                                    <p class="small text-muted mb-3">
+                                        Time remaining to mark attendance: <?= $remaining_minutes ?> min
+                                    </p>
+                                    <form action="mark_attendance_process.php" method="post">
+                                        <button type="submit" name="confirm_attendance" class="btn btn-primary btn-lg">
+                                            Mark as Present
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+
                                 <p class="small text-muted mt-3">Current Time: <?= date('h:i A') ?></p>
                             <?php endif; ?>
 

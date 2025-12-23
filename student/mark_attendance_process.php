@@ -17,27 +17,30 @@ if (!isset($_POST['confirm_attendance'])) {
 
 $student_id = $_SESSION['student_id'];
 $today = date('Y-m-d');
-$currentTime = date('H:i:s');
+$now = time();
 
 /* =========================
    FETCH ATTENDANCE DATE
 ========================= */
 $stmt = $conn->prepare("
-    SELECT opened_at, status 
-    FROM attendance_dates 
+    SELECT opened_at, status
+    FROM attendance_dates
     WHERE attendance_date = ?
 ");
 $stmt->execute([$today]);
 $attendance_date = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$attendance_date) {
-    $_SESSION['error'] = "Attendance has not been opened by admin today.";
+    $_SESSION['error'] = "Attendance has not been opened today.";
     header("Location: mark_attendance.php");
     exit;
 }
 
-if ($attendance_date['status'] === 'Closed') {
-    $_SESSION['error'] = "Attendance is closed for today.";
+$opened_at = strtotime($attendance_date['opened_at']);
+$closed_at = strtotime('+1 hour', $opened_at);
+
+if ($attendance_date['status'] === 'Closed' || $now > $closed_at) {
+    $_SESSION['error'] = "Attendance is closed.";
     header("Location: mark_attendance.php");
     exit;
 }
@@ -46,10 +49,10 @@ if ($attendance_date['status'] === 'Closed') {
    FETCH STUDENT RECORD
 ========================= */
 $stmt = $conn->prepare("
-    SELECT status 
-    FROM attendance 
-    WHERE student_id = ? 
-    AND attendance_date = ?
+    SELECT status
+    FROM attendance
+    WHERE student_id = ? AND attendance_date = ?
+    LIMIT 1
 ");
 $stmt->execute([$student_id, $today]);
 $record = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -61,28 +64,23 @@ if (!$record) {
 }
 
 if ($record['status'] === 'Present') {
-    $_SESSION['error'] = "You have already marked attendance today.";
+    $_SESSION['error'] = "You have already marked attendance.";
     header("Location: mark_attendance.php");
     exit;
 }
 
 /* =========================
-   ATTENDANCE GRADING BASED ON OPEN TIME
+   GRADE CALCULATION
 ========================= */
-$grade = 0;
+$diffMinutes = floor(($now - $opened_at) / 60);
 
-// Admin opened time
-$opened_at = strtotime($attendance_date['opened_at']);
-$now = strtotime($currentTime);
-$diffMinutes = ($now - $opened_at) / 60;
-
-if ($diffMinutes >= 0 && $diffMinutes <= 15) {
+if ($diffMinutes <= 15) {
     $grade = 100;
-} elseif ($diffMinutes > 10 && $diffMinutes <= 30) {
+} elseif ($diffMinutes <= 30) {
     $grade = 75;
-} elseif ($diffMinutes > 30 && $diffMinutes <= 45) {
+} elseif ($diffMinutes <= 45) {
     $grade = 50;
-} elseif ($diffMinutes > 45 && $diffMinutes <= 60) {
+} elseif ($diffMinutes <= 60) {
     $grade = 25;
 } else {
     $grade = 0;
@@ -92,20 +90,30 @@ if ($diffMinutes >= 0 && $diffMinutes <= 15) {
    UPDATE ATTENDANCE
 ========================= */
 $update = $conn->prepare("
-    UPDATE attendance 
-    SET 
+    UPDATE attendance
+    SET
         status = 'Present',
         check_in_time = ?,
         grade = ?
-    WHERE student_id = ? 
-    AND attendance_date = ? 
+    WHERE student_id = ?
+    AND attendance_date = ?
     AND status = 'Absent'
+    LIMIT 1
 ");
 
-if ($update->execute([$currentTime, $grade, $student_id, $today])) {
+$currentTime = date('H:i:s');
+
+$update->execute([
+    $currentTime,
+    $grade,
+    $student_id,
+    $today
+]);
+
+if ($update->rowCount() === 1) {
     $_SESSION['success'] = "Attendance marked successfully. Grade: {$grade}%";
 } else {
-    $_SESSION['error'] = "Failed to mark attendance.";
+    $_SESSION['error'] = "Attendance already marked or failed.";
 }
 
 header("Location: mark_attendance.php");

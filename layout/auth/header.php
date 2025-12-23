@@ -13,7 +13,7 @@
     
     <style>
         body {
-            min-height: 100vh;
+            max-height: 100vh;
             display: flex;
             flex-direction: column;
         }
@@ -24,7 +24,6 @@
             justify-content: center;
         }
         .logo-header {
-            padding: 2rem 0;
             text-align: center;
             background-color: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
@@ -43,7 +42,7 @@
     <header class="logo-header">
         <div class="container">
             <div class="d-flex align-items-center justify-content-center">
-                <i class="bi bi-calendar-check text-primary" style="font-size: 2.5rem; margin-right: 1rem;"></i>
+                <i class="bi bi-calendar-check text-primary" style="font-size: 2rem; margin-right: 1rem;"></i>
                 <span class="logo-text">Student Attendance System</span>
             </div>
         </div>

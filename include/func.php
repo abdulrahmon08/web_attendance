@@ -12,15 +12,16 @@ function addNumber($num1 , $num2){
 }
 
 
-function fillMissingAttendance($conn, $student_id) {
+function fillMissingAttendance(PDO $conn, int $student_id): void
+{
     // 1. Get student's join date
     $stmt = $conn->prepare("SELECT date_joined FROM students WHERE id = ?");
     $stmt->execute([$student_id]);
     $join_date = $stmt->fetchColumn();
-    
+
     if (!$join_date) return;
 
-    // Handle date format (slashes vs dashes)
+    // Handle date formats (slashes vs dashes)
     if (strpos($join_date, '/') !== false) {
         $start = DateTime::createFromFormat('d/m/Y', $join_date);
     } else {
@@ -29,35 +30,40 @@ function fillMissingAttendance($conn, $student_id) {
 
     if (!$start) return;
 
-    // We check up to "Today" (to set the default as Absent for today)
+    // Today
     $today = new DateTime('today');
-    
     if ($start > $today) return;
 
-    // Loop through every day from join date until END of today
+    // 2. Get all attendance dates already in DB for this student
+    $stmt = $conn->prepare("
+        SELECT attendance_date 
+        FROM attendance 
+        WHERE student_id = ?
+    ");
+    $stmt->execute([$student_id]);
+    $existing_dates = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $existing_dates = array_flip($existing_dates); // for faster lookup
+
+    // 3. Loop from join date to today
     $interval = new DateInterval('P1D');
     $period = new DatePeriod($start, $interval, (clone $today)->modify('+1 day'));
 
+    // Prepare insert once
+    $insert = $conn->prepare("
+        INSERT INTO attendance (student_id, attendance_date, status, grade)
+        VALUES (?, ?, 'Absent', 0)
+    ");
+
     foreach ($period as $date) {
         $date_str = $date->format('Y-m-d');
-        $day_of_week = (int)$date->format('N'); // 1 (Mon) to 7 (Sun)
+        $day_of_week = (int)$date->format('N'); // 1 = Mon, 7 = Sun
 
-        // Only for Monday to Friday
+        // Only weekdays
         if ($day_of_week >= 1 && $day_of_week <= 5) {
-            
-            // Check if ANY record exists for this date
-            $check = $conn->prepare("SELECT id FROM attendance WHERE student_id = ? AND attendance_date = ?");
-            $check->execute([$student_id, $date_str]);
-            
-            if ($check->rowCount() == 0) {
-                // DEFAULT OPTION: Mark as Absent
-                $insert = $conn->prepare("
-                    INSERT INTO attendance (student_id, attendance_date, status) 
-                    VALUES (?, ?, 'Absent')
-                ");
+            // Skip if attendance already exists
+            if (!isset($existing_dates[$date_str])) {
                 $insert->execute([$student_id, $date_str]);
             }
         }
     }
 }
-?>

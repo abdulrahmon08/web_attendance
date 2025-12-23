@@ -8,19 +8,18 @@ date_default_timezone_set('Africa/Lagos');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_date'])) {
 
     $date = $_POST['attendance_date'];
-    $open_time = date('H:i:s');
+    $now = date('Y-m-d H:i:s'); // timestamp when admin opens attendance
 
-    // Insert attendance date with open time
+    // Insert attendance date with open timestamp
     $stmt = $conn->prepare("
         INSERT INTO attendance_dates (attendance_date, opened_at, status)
         VALUES (?, ?, 'Open')
-        ON DUPLICATE KEY UPDATE status='Open'
+        ON DUPLICATE KEY UPDATE status='Open', opened_at=VALUES(opened_at)
     ");
-    $stmt->execute([$date, $open_time]);
+    $stmt->execute([$date, $now]);
 
-    // Insert default ABSENT for all students
+    // Insert default 'Absent' for all students
     $students = $conn->query("SELECT id FROM students")->fetchAll(PDO::FETCH_ASSOC);
-
     foreach ($students as $student) {
         $insert = $conn->prepare("
             INSERT IGNORE INTO attendance (student_id, attendance_date, status, grade)
@@ -38,10 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_date'])) {
 // REMOVE ATTENDANCE DATE
 // ============================
 if (isset($_GET['delete'])) {
-
     $date = $_GET['delete'];
 
-    // Delete attendance records first (FK safe)
+    // Delete attendance records first
     $stmt = $conn->prepare("DELETE FROM attendance WHERE attendance_date = ?");
     $stmt->execute([$date]);
 
@@ -58,7 +56,8 @@ if (isset($_GET['delete'])) {
 // FETCH ALL ATTENDANCE DATES
 // ============================
 $dates = $conn->query("
-    SELECT attendance_date, opened_at, status
+    SELECT attendance_date, opened_at, status,
+           TIMESTAMPADD(HOUR,1,opened_at) AS close_time
     FROM attendance_dates
     ORDER BY attendance_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
@@ -77,15 +76,14 @@ require_once '../layout/admin/header.php';
         </div>
     <?php endif; ?>
 
-    <!-- OPEN ATTENDANCE -->
+    <!-- OPEN ATTENDANCE FORM -->
     <form method="post" class="row g-3 mb-4">
         <div class="col-md-4">
             <input type="date" name="attendance_date" class="form-control" required>
         </div>
         <div class="col-md-3">
             <button class="btn btn-primary">
-                <i class="bi bi-calendar-plus me-1"></i>
-                Open Attendance
+                <i class="bi bi-calendar-plus me-1"></i> Open Attendance
             </button>
         </div>
     </form>
@@ -100,14 +98,14 @@ require_once '../layout/admin/header.php';
                         <th>Time Opened</th>
                         <th>Status</th>
                         <th>Grading Window</th>
+                        <th>Closes At</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-
                 <?php if (empty($dates)): ?>
                     <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">
+                        <td colspan="6" class="text-center py-4 text-muted">
                             No attendance opened yet.
                         </td>
                     </tr>
@@ -123,11 +121,11 @@ require_once '../layout/admin/header.php';
                             </td>
                             <td>
                                 <small class="text-muted">
-                                    0–15m: 100% |
-                                    16–30m: 75% |
-                                    31–45m: 50% |
-                                    46–60m: 25%
+                                    0–15m: 100% | 16–30m: 75% | 31–45m: 50% | 46–60m: 25%
                                 </small>
+                            </td>
+                            <td>
+                                <small class="text-muted"><?= date('h:i A', strtotime($d['close_time'])) ?></small>
                             </td>
                             <td>
                                 <a href="?delete=<?= $d['attendance_date'] ?>"
@@ -139,11 +137,11 @@ require_once '../layout/admin/header.php';
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
-
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
 
 <?php require_once '../layout/admin/footer.php'; ?>

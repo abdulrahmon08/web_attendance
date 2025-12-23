@@ -17,7 +17,7 @@ $student_name = $_SESSION['student_name'];
 // =========================
 // 2. AUTO-FILL ABSENT DAYS
 // =========================
-fillMissingAttendance($conn, $student_id);
+// fillMissingAttendance($conn, $student_id);
 
 // =========================
 // 3. OVERALL STATISTICS (GRADE AWARE)
@@ -65,7 +65,7 @@ $this_month_percentage = $this_month_total > 0 ? round(($this_month_grade / ($th
 // 5. RECENT ATTENDANCE
 // =========================
 $stmt = $conn->prepare("
-    SELECT attendance_date, status, check_in_time, grade
+    SELECT attendance_date, status, check_in_time, checkout_time, grade
     FROM attendance
     WHERE student_id = ?
     ORDER BY attendance_date DESC
@@ -178,7 +178,7 @@ require_once '../layout/student/header.php';
                                 <h3><?= $this_month_percentage ?>%</h3>
                             </div>
                             <div class="bg-info bg-opacity-10 p-3 rounded">
-                                <i class="bi bi-calendar-month fs-3 text-info"></i>
+                                <i class="bi bi-calendar-check fs-3 text-info"></i>
                             </div>
                         </div>
                     </div>
@@ -199,13 +199,14 @@ require_once '../layout/student/header.php';
                                 <th>Day</th>
                                 <th>Status</th>
                                 <th>Check-in</th>
+                                <th>Check-out</th>
                                 <th>Grade</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (!$recent_records): ?>
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-muted">
+                                    <td colspan="6" class="text-center py-4 text-muted">
                                         No attendance records found
                                     </td>
                                 </tr>
@@ -222,6 +223,11 @@ require_once '../layout/student/header.php';
                                         <td>
                                             <?= $row['check_in_time']
                                                 ? date('h:i A', strtotime($row['check_in_time']))
+                                                : '-- : --' ?>
+                                        </td>
+                                        <td>
+                                            <?= $row['checkout_time']
+                                                ? date('h:i A', strtotime($row['checkout_time']))
                                                 : '-- : --' ?>
                                         </td>
                                         <td>
