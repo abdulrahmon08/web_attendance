@@ -70,7 +70,7 @@ require_once '../layout/student/header.php';
     <div class="row">
         <!-- Sidebar omitted for brevity -->
 
-        <div class="col-md-9 col-lg-10 p-4">
+        <div class="col-md-9 col-lg-10 p-4  offset-md-3 offset-lg-2 p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 class="mb-0">Mark Attendance</h2>

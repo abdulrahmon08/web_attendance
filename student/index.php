@@ -77,35 +77,8 @@ $recent_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 require_once '../layout/student/header.php';
 ?>
 
-<div class="container-fluid">
-    <div class="row">
-
-        <!-- SIDEBAR -->
-        <div class="col-md-3 col-lg-2 sidebar p-3 bg-light min-vh-100">
-            <div class="mb-4 ps-3">
-                <h5 class="text-primary fw-bold">SIWES Portal</h5>
-            </div>
-
-            <nav class="nav flex-column">
-                <a class="nav-link active mb-2" href="index.php">
-                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                </a>
-                <a class="nav-link mb-2" href="mark_attendance.php">
-                    <i class="bi bi-calendar-check me-2"></i> Mark Attendance
-                </a>
-                <a class="nav-link mb-2" href="profile.php">
-                    <i class="bi bi-person me-2"></i> Profile
-                </a>
-                <hr>
-                <a class="nav-link text-danger" href="../logout.php"
-                   onclick="return confirm('Are you sure you want to logout?')">
-                    <i class="bi bi-box-arrow-left me-2"></i> Logout
-                </a>
-            </nav>
-        </div>
-
         <!-- MAIN CONTENT -->
-        <div class="col-md-9 col-lg-10 p-4">
+        <div class=" offset-md-3 offset-lg-2 p-4" id="mainContent">
 
             <!-- HEADER -->
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -123,9 +96,7 @@ require_once '../layout/student/header.php';
 
             <!-- STAT CARDS -->
             <div class="row mb-4">
-
-                <!-- Attendance Grade -->
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-md-3 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
@@ -138,9 +109,7 @@ require_once '../layout/student/header.php';
                         </div>
                     </div>
                 </div>
-
-                <!-- Total Present -->
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-md-3 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
@@ -153,9 +122,7 @@ require_once '../layout/student/header.php';
                         </div>
                     </div>
                 </div>
-
-                <!-- Total Absent -->
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-md-3 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
@@ -168,9 +135,7 @@ require_once '../layout/student/header.php';
                         </div>
                     </div>
                 </div>
-
-                <!-- This Month Grade -->
-                <div class="col-md-3 mb-3">
+                <div class="col-12 col-md-3 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
@@ -183,10 +148,9 @@ require_once '../layout/student/header.php';
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- RECENT ATTENDANCE -->
+            <!-- RECENT ATTENDANCE TABLE -->
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white fw-bold">
                     <i class="bi bi-clock-history me-2"></i> Recent Attendance
@@ -206,9 +170,7 @@ require_once '../layout/student/header.php';
                         <tbody>
                             <?php if (!$recent_records): ?>
                                 <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted">
-                                        No attendance records found
-                                    </td>
+                                    <td colspan="6" class="text-center py-4 text-muted">No attendance records found</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($recent_records as $row): ?>
@@ -220,30 +182,16 @@ require_once '../layout/student/header.php';
                                                 <?= $row['status'] ?>
                                             </span>
                                         </td>
-                                        <td>
-                                            <?= $row['check_in_time']
-                                                ? date('h:i A', strtotime($row['check_in_time']))
-                                                : '-- : --' ?>
-                                        </td>
-                                        <td>
-                                            <?= $row['checkout_time']
-                                                ? date('h:i A', strtotime($row['checkout_time']))
-                                                : '-- : --' ?>
-                                        </td>
+                                        <td><?= $row['check_in_time'] ? date('h:i A', strtotime($row['check_in_time'])) : '-- : --' ?></td>
+                                        <td><?= $row['checkout_time'] ? date('h:i A', strtotime($row['checkout_time'])) : '-- : --' ?></td>
                                         <td>
                                             <?php
                                                 $grade = (int)$row['grade'];
-                                                if ($grade == 100) {
-                                                    echo '<span class="badge bg-success">100%</span>';
-                                                } elseif ($grade == 75) {
-                                                    echo '<span class="badge bg-info text-dark">75%</span>';
-                                                } elseif ($grade == 50) {
-                                                    echo '<span class="badge bg-warning text-dark">50%</span>';
-                                                } elseif ($grade == 25) {
-                                                    echo '<span class="badge bg-primary text-white">25%</span>';
-                                                } else {
-                                                    echo '<span class="badge bg-danger">0%</span>';
-                                                }
+                                                if ($grade == 100) echo '<span class="badge bg-success">100%</span>';
+                                                elseif ($grade == 75) echo '<span class="badge bg-info text-dark">75%</span>';
+                                                elseif ($grade == 50) echo '<span class="badge bg-warning text-dark">50%</span>';
+                                                elseif ($grade == 25) echo '<span class="badge bg-primary text-white">25%</span>';
+                                                else echo '<span class="badge bg-danger">0%</span>';
                                             ?>
                                         </td>
                                     </tr>
@@ -263,9 +211,19 @@ require_once '../layout/student/header.php';
                 09:46 – 10:00 AM → 25%<br>
                 After 10:00 AM → 0%
             </div>
-
         </div>
     </div>
 </div>
+
+<!-- Sidebar toggle JS -->
+<script>
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+
+    sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+    });
+</script>
+
 
 <?php require_once '../layout/student/footer.php'; ?>

@@ -1,6 +1,6 @@
     </main>
     
-    <footer class="bg-light py-3 mt-auto border-top">
+    <footer class="bg-light py-3 mt-auto border-top offset-md-3 offset-lg-2 p-4">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-6 text-center text-md-start">
