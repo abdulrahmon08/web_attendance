@@ -43,9 +43,10 @@ if (isset($_POST['edit_student'])) {
     $school_name = $_POST['school_name'];
     $gender = $_POST['gender'];
     $phone = $_POST['phone'];
+    $date_joined = $_POST['date_joined'];
 
-    $stmt = $conn->prepare("UPDATE students SET name=?, school_name=?, gender=?, phone_number=? WHERE id=?");
-    $stmt->execute([$name, $school_name, $gender, $phone, $id]);
+    $stmt = $conn->prepare("UPDATE students SET name=?, school_name=?, gender=?, phone_number=?, date_joined=? WHERE id=?");
+    $stmt->execute([$name, $school_name, $gender, $phone, $date_joined, $id]);
 
     $_SESSION['success'] = "Student updated successfully.";
     header("Location: students.php");
@@ -94,27 +95,8 @@ $students = $conn->query("SELECT * FROM students ORDER BY date_joined DESC")->fe
 require_once '../layout/admin/header.php';
 ?>
 
-<div class="container-fluid">
-    <div class="row">
-
-        <!-- SIDEBAR -->
-        <div class="col-md-3 col-lg-2 sidebar p-3 bg-light min-vh-100">
-            <div class="mb-4 ps-3">
-                <h5 class="text-primary fw-bold">SIWES Admin</h5>
-            </div>
-
-            <nav class="nav flex-column">
-                <a class="nav-link" href="index.php">Dashboard</a>
-                <a class="nav-link" href="attendance_dates.php">Host Attendance</a>
-                <a class="nav-link" href="attendance_view.php">View Attendance</a>
-                <a class="nav-link active" href="students.php">Students</a>
-                <hr>
-                <a class="nav-link text-danger" href="../logout.php">Logout</a>
-            </nav>
-        </div>
-
         <!-- MAIN CONTENT -->
-        <div class="col-md-9 col-lg-10 p-4">
+        <div class="col-md-9 col-lg-10 mt-4 offset-md-3 offset-lg-2 p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold mb-0">Students</h4>
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
@@ -197,6 +179,10 @@ require_once '../layout/admin/header.php';
                                                         <div class="mb-2">
                                                             <label class="form-label">Phone</label>
                                                             <input type="text" class="form-control" name="phone" value="<?= htmlspecialchars($s['phone_number']) ?>" required>
+                                                        </div>
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Phone</label>
+                                                            <input type="text" class="form-control" name="date_joined" value="<?= htmlspecialchars($s['date_joined']) ?>" required>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">

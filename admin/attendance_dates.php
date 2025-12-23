@@ -65,14 +65,15 @@ $dates = $conn->query("
 require_once '../layout/admin/header.php';
 ?>
 
-<div class="container-fluid p-4">
+<div class="container offset-md-2 offset-lg-2 p-4 mt-4">
 
     <h4 class="mb-4 fw-bold">Host Attendance</h4>
 
     <!-- SUCCESS MESSAGE -->
     <?php if (!empty($_SESSION['success'])): ?>
         <div class="alert alert-success">
-            <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+            <?= $_SESSION['success'];
+            unset($_SESSION['success']); ?>
         </div>
     <?php endif; ?>
 
@@ -87,61 +88,58 @@ require_once '../layout/admin/header.php';
             </button>
         </div>
     </form>
-
+    <small class="text-muted">
+        Grading Window: 0–15m: 100% | 16–30m: 75% | 31–45m: 50% | 46–60m: 25%
+    </small>
+    <!-- ATTENDANCE TABLE -->
     <!-- ATTENDANCE TABLE -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0 table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+            <table class="table table-hover table-sm align-middle mb-0 text-nowrap w-100">
+                <thead class="table-light small">
                     <tr>
                         <th>Date</th>
                         <th>Time Opened</th>
                         <th>Status</th>
-                        <th>Grading Window</th>
                         <th>Closes At</th>
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody>
-                <?php if (empty($dates)): ?>
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">
-                            No attendance opened yet.
-                        </td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($dates as $d): ?>
+                <tbody class="small">
+                    <?php if (empty($dates)): ?>
                         <tr>
-                            <td class="fw-bold"><?= $d['attendance_date'] ?></td>
-                            <td><?= date('h:i A', strtotime($d['opened_at'])) ?></td>
-                            <td>
-                                <span class="badge bg-<?= $d['status'] === 'Open' ? 'success' : 'secondary' ?>">
-                                    <?= $d['status'] ?>
-                                </span>
-                            </td>
-                            <td>
-                                <small class="text-muted">
-                                    0–15m: 100% | 16–30m: 75% | 31–45m: 50% | 46–60m: 25%
-                                </small>
-                            </td>
-                            <td>
-                                <small class="text-muted"><?= date('h:i A', strtotime($d['close_time'])) ?></small>
-                            </td>
-                            <td>
-                                <a href="?delete=<?= $d['attendance_date'] ?>"
-                                   class="btn btn-sm btn-danger"
-                                   onclick="return confirm('Remove this attendance date?')">
-                                    <i class="bi bi-trash"></i> Remove
-                                </a>
+                            <td colspan="5" class="text-center py-2 text-muted">
+                                No attendance opened yet.
                             </td>
                         </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                    <?php else: ?>
+                        <?php foreach ($dates as $d): ?>
+                            <tr>
+                                <td class="fw-bold"><?= $d['attendance_date'] ?></td>
+                                <td><?= date('h:i A', strtotime($d['opened_at'])) ?></td>
+                                <td>
+                                    <span class="badge bg-<?= $d['status'] === 'Open' ? 'success' : 'secondary' ?>">
+                                        <?= $d['status'] ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted"><?= date('h:i A', strtotime($d['close_time'])) ?></small>
+                                </td>
+                                <td>
+                                    <a href="?delete=<?= $d['attendance_date'] ?>"
+                                        class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Remove this attendance date?')">
+                                        <i class="bi bi-trash"></i> Remove
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 
+
 </div>
 
-<?php require_once '../layout/admin/footer.php'; ?>

@@ -1,13 +1,13 @@
     </main>
     
-    <footer class="bg-light py-3 mt-auto border-top">
+    <footer class="bg-light py-3 mt-auto border-top offset-md-3 offset-lg-2 p-4">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-6 text-center text-md-start">
                     <p class="mb-0 text-muted">&copy; <?php echo date('Y'); ?> Student Attendance System. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
-                    <p class="mb-0 text-muted">Student Portal</p>
+                    <p class="mb-0 text-muted">Admin Portal</p>
                 </div>
             </div>
         </div>
