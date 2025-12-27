@@ -106,7 +106,6 @@ require_once '../layout/student/header.php';
                             <div class="row mb-3">
                                 <div class="col-sm-4 fw-bold">Account Created:</div>
                                 <div class="col-sm-8 text-secondary">
-                                    <!-- FIXED DATE ERROR HERE -->
                                     <?= date('F j, Y', strtotime($student['date_joined'])) ?>
                                 </div>
                             </div>
