@@ -38,10 +38,16 @@ $total        = (int)$summary['total'];
 $present      = (int)$summary['present'];
 $absent       = (int)$summary['absent'];
 $total_grade  = (int)$summary['total_grade'];
-
 $max_grade        = $total * 100;
 $grade_percentage = $max_grade > 0 ? round(($total_grade / $max_grade) * 100) : 0;
 
+// grading
+$today = date('Y-m-d');
+$grade = null;
+$stmt = $conn->prepare("select * from attendance where student_id= ? and attendance_date= ?");
+$stmt->execute([$student_id, $today]);
+$attendance_record = $stmt->fetch(PDO::FETCH_ASSOC);
+$grade = $attendance_record['grade'];
 // =========================
 // 4. THIS MONTH STATISTICS
 // =========================
@@ -59,7 +65,7 @@ $thisMonth = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $this_month_total = (int)$thisMonth['total'];
 $this_month_grade = (int)$thisMonth['total_grade'];
-$this_month_percentage = $this_month_total > 0 ? round(($this_month_grade / ($this_month_total*100)) * 100) : 0;
+$this_month_percentage = $this_month_total > 0 ? round(($this_month_grade / ($this_month_total * 100)) * 100) : 0;
 
 // =========================
 // 5. RECENT ATTENDANCE
@@ -73,146 +79,158 @@ $stmt = $conn->prepare("
 ");
 $stmt->execute([$student_id]);
 $recent_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 require_once '../layout/student/header.php';
 ?>
 
-        <!-- MAIN CONTENT -->
-        <div class=" offset-md-3 offset-lg-2 p-4" id="mainContent">
+<!-- MAIN CONTENT -->
+<div class=" offset-md-3 offset-lg-2 p-4" id="mainContent">
 
-            <!-- HEADER -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="mb-0">Dashboard</h2>
-                    <p class="text-muted">Attendance & punctuality overview</p>
-                </div>
-                <div>
-                    <span class="badge bg-info text-dark p-2 px-3 rounded-pill">
-                        <i class="bi bi-person-circle"></i>
-                        <?= htmlspecialchars($student_name) ?>
-                    </span>
-                </div>
-            </div>
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Dashboard</h2>
+            <p class="text-muted">Attendance & punctuality overview</p>
+        </div>
+        <div>
+            <span class="badge bg-info text-dark p-2 px-3 rounded-pill">
+                <i class="bi bi-person-circle"></i>
+                <?= htmlspecialchars($student_name) ?>
+            </span>
+        </div>
+    </div>
 
-            <!-- STAT CARDS -->
-            <div class="row mb-4">
-                <div class="col-12 col-md-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted small fw-bold">ATTENDANCE SCORE</h6>
-                                <h3><?= $grade_percentage ?>%</h3>
-                            </div>
-                            <div class="bg-primary bg-opacity-10 p-3 rounded">
-                                <i class="bi bi-graph-up text-primary fs-3"></i>
-                            </div>
-                        </div>
+    <!-- STAT CARDS -->
+    <div class="row mb-4">
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted small fw-bold">ATTENDANCE SCORE</h6>
+                        <h3><?= $grade_percentage ?>%</h3>
                     </div>
-                </div>
-                <div class="col-12 col-md-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted small fw-bold">TOTAL PRESENT</h6>
-                                <h3 class="text-success"><?= $present ?></h3>
-                            </div>
-                            <div class="bg-success bg-opacity-10 p-3 rounded">
-                                <i class="bi bi-check-circle fs-3 text-success"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted small fw-bold">TOTAL ABSENT</h6>
-                                <h3 class="text-danger"><?= $absent ?></h3>
-                            </div>
-                            <div class="bg-danger bg-opacity-10 p-3 rounded">
-                                <i class="bi bi-x-circle fs-3 text-danger"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-3 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted small fw-bold">MONTHLY SCORE</h6>
-                                <h3><?= $this_month_percentage ?>%</h3>
-                            </div>
-                            <div class="bg-info bg-opacity-10 p-3 rounded">
-                                <i class="bi bi-calendar-check fs-3 text-info"></i>
-                            </div>
-                        </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-graph-up text-primary fs-3"></i>
                     </div>
                 </div>
             </div>
-
-            <!-- RECENT ATTENDANCE TABLE -->
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white fw-bold">
-                    <i class="bi bi-clock-history me-2"></i> Recent Attendance
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4">Date</th>
-                                <th>Day</th>
-                                <th>Status</th>
-                                <th>Check-in</th>
-                                <th>Check-out</th>
-                                <th>Grade</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!$recent_records): ?>
-                                <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted">No attendance records found</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($recent_records as $row): ?>
-                                    <tr>
-                                        <td class="ps-4 fw-bold"><?= $row['attendance_date'] ?></td>
-                                        <td><?= date('l', strtotime($row['attendance_date'])) ?></td>
-                                        <td>
-                                            <span class="badge bg-<?= $row['status'] === 'Present' ? 'success' : 'danger' ?>">
-                                                <?= $row['status'] ?>
-                                            </span>
-                                        </td>
-                                        <td><?= $row['check_in_time'] ? date('h:i A', strtotime($row['check_in_time'])) : '-- : --' ?></td>
-                                        <td><?= $row['checkout_time'] ? date('h:i A', strtotime($row['checkout_time'])) : '-- : --' ?></td>
-                                        <td>
-                                            <?php
-                                                $grade = (int)$row['grade'];
-                                                if ($grade == 100) echo '<span class="badge bg-success">100%</span>';
-                                                elseif ($grade == 75) echo '<span class="badge bg-info text-dark">75%</span>';
-                                                elseif ($grade == 50) echo '<span class="badge bg-warning text-dark">50%</span>';
-                                                elseif ($grade == 25) echo '<span class="badge bg-primary text-white">25%</span>';
-                                                else echo '<span class="badge bg-danger">0%</span>';
-                                            ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+        </div>
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted small fw-bold">TODAY'S GRADE</h6>
+                        <h3><?= $grade ?>%</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-graph-up text-primary fs-3"></i>
+                    </div>
                 </div>
             </div>
-
-            <!-- POLICY -->
-            <div class="alert alert-info mt-3 small">
-                <strong>Grade Illustration:</strong><br>
-                09:00 – 09:15 AM → 100%<br>
-                09:16 – 09:30 AM → 75%<br>
-                09:31 – 09:45 AM → 50%<br>
-                09:46 – 10:00 AM → 25%<br>
-                After 10:00 AM → 0%
+        </div>
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted small fw-bold">TOTAL PRESENT</h6>
+                        <h3 class="text-success"><?= $present ?></h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-check-circle fs-3 text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted small fw-bold">TOTAL ABSENT</h6>
+                        <h3 class="text-danger"><?= $absent ?></h3>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-x-circle fs-3 text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted small fw-bold">MONTHLY SCORE</h6>
+                        <h3><?= $this_month_percentage ?>%</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-calendar-check fs-3 text-info"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- RECENT ATTENDANCE TABLE -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-bold">
+            <i class="bi bi-clock-history me-2"></i> Recent Attendance
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Day</th>
+                        <th>Status</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!$recent_records): ?>
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No attendance records found</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($recent_records as $row): ?>
+                            <tr>
+                                <td class="ps-4 fw-bold"><?= $row['attendance_date'] ?></td>
+                                <td><?= date('l', strtotime($row['attendance_date'])) ?></td>
+                                <td>
+                                    <span class="badge bg-<?= $row['status'] === 'Present' ? 'success' : 'danger' ?>">
+                                        <?= $row['status'] ?>
+                                    </span>
+                                </td>
+                                <td><?= $row['check_in_time'] ? date('h:i A', strtotime($row['check_in_time'])) : '-- : --' ?></td>
+                                <td><?= $row['checkout_time'] ? date('h:i A', strtotime($row['checkout_time'])) : '-- : --' ?></td>
+                                <td>
+                                    <?php
+                                    $grade = (int)$row['grade'];
+                                    if ($grade == 100) echo '<span class="badge bg-success">100%</span>';
+                                    elseif ($grade == 75) echo '<span class="badge bg-info text-dark">75%</span>';
+                                    elseif ($grade == 50) echo '<span class="badge bg-warning text-dark">50%</span>';
+                                    elseif ($grade == 25) echo '<span class="badge bg-primary text-white">25%</span>';
+                                    else echo '<span class="badge bg-danger">0%</span>';
+                                    ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- POLICY -->
+    <div class="alert alert-info mt-3 small">
+        <strong>Grade Illustration:</strong><br>
+        09:00 – 09:15 AM → 100%<br>
+        09:16 – 09:30 AM → 75%<br>
+        09:31 – 09:45 AM → 50%<br>
+        09:46 – 10:00 AM → 25%<br>
+        After 10:00 AM → 0%
+    </div>
+</div>
+</div>
 </div>
 
 <!-- Sidebar toggle JS -->
