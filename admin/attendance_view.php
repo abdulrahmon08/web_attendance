@@ -15,7 +15,7 @@ $dates = $conn->query("
 $records = [];
 if ($date) {
     $stmt = $conn->prepare("
-        SELECT s.name, a.status, a.check_in_time
+        SELECT s.name, a.status, a.check_in_time, a.checkout_time
         FROM attendance a
         JOIN students s ON a.student_id = s.id
         WHERE a.attendance_date = ?
@@ -64,6 +64,7 @@ require_once '../layout/admin/header.php';
                                 <th class="ps-4">Student Name</th>
                                 <th>Status</th>
                                 <th>Check-in Time</th>
+                                <th>Checkout Time</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -84,6 +85,9 @@ require_once '../layout/admin/header.php';
                                     </td>
                                     <td>
                                         <?= $r['check_in_time'] ? date('h:i A', strtotime($r['check_in_time'])) : '-- : --' ?>
+                                    </td>
+                                    <td>
+                                        <?= $r['checkout_time'] ? date('h:i A', strtotime($r['checkout_time'])) : '-- : --' ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

@@ -181,7 +181,7 @@ require_once '../layout/admin/header.php';
                                                             <input type="text" class="form-control" name="phone" value="<?= htmlspecialchars($s['phone_number']) ?>" required>
                                                         </div>
                                                         <div class="mb-2">
-                                                            <label class="form-label">Phone</label>
+                                                            <label class="form-label">Date Joined</label>
                                                             <input type="text" class="form-control" name="date_joined" value="<?= htmlspecialchars($s['date_joined']) ?>" required>
                                                         </div>
                                                     </div>
