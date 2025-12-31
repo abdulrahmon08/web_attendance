@@ -41,13 +41,6 @@ $total_grade  = (int)$summary['total_grade'];
 $max_grade        = $total * 100;
 $grade_percentage = $max_grade > 0 ? round(($total_grade / $max_grade) * 100) : 0;
 
-// grading
-$today = date('Y-m-d');
-$grade = null;
-$stmt = $conn->prepare("select * from attendance where student_id= ? and attendance_date= ?");
-$stmt->execute([$student_id, $today]);
-$attendance_record = $stmt->fetch(PDO::FETCH_ASSOC);
-$grade = $attendance_record['grade'];
 // =========================
 // 4. THIS MONTH STATISTICS
 // =========================
@@ -114,19 +107,7 @@ require_once '../layout/student/header.php';
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted small fw-bold">TODAY'S GRADE</h6>
-                        <h3><?= $grade ?>%</h3>
-                    </div>
-                    <div class="bg-primary bg-opacity-10 p-3 rounded">
-                        <i class="bi bi-graph-up text-primary fs-3"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+
         <div class="col-12 col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
