@@ -20,6 +20,36 @@ $stmt = $conn->prepare("SELECT COUNT(*) as total FROM attendance WHERE student_i
 $stmt->execute([$student_id]);
 $attendance_count = $stmt->fetchColumn();
 
+
+$message = "";
+
+if (isset($_POST['reset'])) {
+    $new_password = trim($_POST['new_password']);
+    $confirm_password = trim($_POST['confirm_password']);
+
+    // Example: user ID stored in session
+    $student_id = $_SESSION['student_id'] ?? null;
+
+    if (!$student_id) {
+        $message = '<div class="alert alert-danger">Unauthorized request.</div>';
+    } elseif ($new_password !== $confirm_password) {
+        $message = '<div class="alert alert-danger">Passwords do not match.</div>';
+    } elseif (strlen($new_password) < 4) {
+        $message = '<div class="alert alert-danger">Password must be at least 4 characters.</div>';
+    } elseif (strlen($new_password) > 8) {
+        $message = '<div class="alert alert-danger">Password must not greater than 8 characters.</div>';
+    } else {
+        // Store password as plain text (NOT recommended)
+        $stmt = $conn->prepare("UPDATE students SET password = ? WHERE id = ?");
+
+        if ($stmt->execute([$new_password, $student_id])) {
+            $message = '<div class="alert alert-success">Password reset successful.</div>';
+        } else {
+            $message = '<div class="alert alert-danger">Failed to reset password.</div>';
+        }
+    }
+}
+
 require_once '../layout/student/header.php';
 ?>
 
@@ -45,7 +75,7 @@ require_once '../layout/student/header.php';
                         <h4 class="mb-1"><?= htmlspecialchars($student['name']) ?></h4>
                         <!-- Using student_id as the student ID -->
                         <p class="text-muted mb-3"><?= htmlspecialchars($student['student_id'] ?? 'Student ID Not Set') ?></p>
-                        
+
                         <div class="d-flex justify-content-around border-top pt-3">
                             <div>
                                 <h6 class="mb-0"><?= $attendance_count ?></h6>
@@ -57,6 +87,47 @@ require_once '../layout/student/header.php';
                                 <small class="text-muted">Enrolled</small>
                             </div>
                         </div>
+                            <div>
+                                <button class="btn btn-outline-primary btn-sm mt-4" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                                    Reset your Password
+                                </button>
+                                <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="resetPasswordModalLabel">Reset your Password</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <h3 class="mt-4">Create New Password</h3>
+                                                <p class="mb-4">Enter a strong password and confirm it to reset your account.</p>
+
+                                                <form method="POST">
+
+                                                    <div class="mb-3 text-start">
+                                                        <label class="form-label">New Password</label>
+                                                        <input type="password" name="new_password" class="form-control" placeholder="Enter new password" required>
+                                                    </div>
+
+                                                    <div class="mb-3 text-start">
+                                                        <label class="form-label">Confirm Password</label>
+                                                        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm new password" required>
+                                                    </div>
+
+                                                    <button type="submit" name="reset" class="btn btn-primary w-100 py-2">Reset Password</button>
+
+                                                    <?= $message ?? "" ?>
+                                                </form>
+
+                                                <div class="mt-4">
+                                                    <p><a href="index.php"><i class="bi bi-arrow-left"></i> Back to Dashboard</a></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                       
                     </div>
                 </div>
 
@@ -72,7 +143,7 @@ require_once '../layout/student/header.php';
                                 <div class="col-sm-8 text-secondary"><?= htmlspecialchars($student['name']) ?></div>
                             </div>
                             <hr class="text-muted opacity-25">
-                            
+
                             <div class="row mb-3">
                                 <div class="col-sm-4 fw-bold">Student ID:</div>
                                 <div class="col-sm-8 text-secondary"><?= htmlspecialchars($student['student_id'] ?? 'N/A') ?></div>

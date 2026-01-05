@@ -94,20 +94,7 @@ require_once '../layout/student/header.php';
 
     <!-- STAT CARDS -->
     <div class="row mb-4">
-        <div class="col-12 col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted small fw-bold">ATTENDANCE SCORE</h6>
-                        <h3><?= $grade_percentage ?>%</h3>
-                    </div>
-                    <div class="bg-primary bg-opacity-10 p-3 rounded">
-                        <i class="bi bi-graph-up text-primary fs-3"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        
         <div class="col-12 col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
@@ -147,6 +134,20 @@ require_once '../layout/student/header.php';
                 </div>
             </div>
         </div>
+        <div class="col-12 col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted small fw-bold"> TOTAL SCORE</h6>
+                        <h3><?= $grade_percentage ?>%</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-graph-up text-primary fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- RECENT ATTENDANCE TABLE -->
