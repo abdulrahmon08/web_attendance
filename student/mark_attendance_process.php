@@ -19,6 +19,16 @@ $student_id = $_SESSION['student_id'];
 $today = date('Y-m-d');
 $now = time();
 
+// =========================
+// AUTH CODE CHECK
+// =========================
+$auth_code = isset($_POST['auth_code']) ? trim($_POST['auth_code']) : '';
+if ($auth_code === '' || !preg_match('/^\d{6}$/', $auth_code)) {
+    $_SESSION['error'] = "Invalid or missing authorization code. Enter the 6-digit code assigned to you.";
+    header("Location: mark_attendance.php");
+    exit;
+}
+
 /* =========================
    FETCH ATTENDANCE DATE
 ========================= */
@@ -48,8 +58,9 @@ if ($attendance_date['status'] === 'Closed' || $now > $closed_at) {
 /* =========================
    FETCH STUDENT RECORD
 ========================= */
+// include auth columns in select
 $stmt = $conn->prepare("
-    SELECT status
+    SELECT status, auth_code, COALESCE(auth_used,0) AS auth_used
     FROM attendance
     WHERE student_id = ? AND attendance_date = ?
     LIMIT 1
@@ -59,6 +70,19 @@ $record = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$record) {
     $_SESSION['error'] = "Attendance record not found.";
+    header("Location: mark_attendance.php");
+    exit;
+}
+
+// Check authorization code match and usage
+if (isset($record['auth_used']) && $record['auth_used']) {
+    $_SESSION['error'] = "Your authorization code for today has already been used.";
+    header("Location: mark_attendance.php");
+    exit;
+}
+
+if (empty($record['auth_code']) || $record['auth_code'] !== $auth_code) {
+    $_SESSION['error'] = "Invalid authorization code. Please enter the 6-digit code assigned to you for today.";
     header("Location: mark_attendance.php");
     exit;
 }
@@ -111,6 +135,10 @@ $update->execute([
 ]);
 
 if ($update->rowCount() === 1) {
+    // mark auth as used (keep auth_code for admin record)
+    $mark = $conn->prepare("UPDATE attendance SET auth_used = 1 WHERE student_id = ? AND attendance_date = ?");
+    $mark->execute([$student_id, $today]);
+
     $_SESSION['success'] = "Attendance marked successfully. Grade: {$grade}%";
 } else {
     $_SESSION['error'] = "Attendance already marked or failed.";

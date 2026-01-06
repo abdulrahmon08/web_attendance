@@ -87,6 +87,13 @@ require_once '../layout/student/header.php';
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center p-5">
 
+                            <?php if (!empty($_SESSION['error'])): ?>
+                                <div class="alert alert-danger"><?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?></div>
+                            <?php endif; ?>
+                            <?php if (!empty($_SESSION['success'])): ?>
+                                <div class="alert alert-success"><?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?></div>
+                            <?php endif; ?>
+
                             <?php if (!$is_weekday): ?>
                                 <div class="alert alert-info">Weekend: Attendance not required.</div>
                                 <a href="index.php" class="btn btn-outline-secondary mt-3">Back to Dashboard</a>
@@ -128,10 +135,17 @@ require_once '../layout/student/header.php';
                                     <p class="small text-muted mb-3">
                                         Time remaining to mark attendance: <?= $remaining_minutes ?> min
                                     </p>
-                                    <form action="mark_attendance_process.php" method="post">
-                                        <button type="submit" name="confirm_attendance" class="btn btn-primary btn-lg">
-                                            Mark as Present
-                                        </button>
+                                    <form action="mark_attendance_process.php" method="post" class="text-start">
+                                        <div class="mb-3">
+                                            <label class="form-label">Authorization Code</label>
+                                            <input type="text" name="auth_code" class="form-control form-control-lg" placeholder="Enter 6-digit code" maxlength="6" pattern="\d{6}" required>
+                                            <div class="form-text small">Enter the 6-digit code provided for you today.</div>
+                                        </div>
+                                        <div class="d-grid">
+                                            <button type="submit" name="confirm_attendance" class="btn btn-primary btn-lg">
+                                                Mark as Present
+                                            </button>
+                                        </div>
                                     </form>
                                 <?php endif; ?>
 

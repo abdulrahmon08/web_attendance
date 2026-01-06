@@ -92,6 +92,20 @@ if (isset($_GET['delete'])) {
 // ============================
 $students = $conn->query("SELECT * FROM students ORDER BY date_joined DESC")->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch today's auth codes (if any) to display beside students
+$today = date('Y-m-d');
+$codeMap = [];
+try {
+    $codes = $conn->prepare("SELECT student_id, auth_code, COALESCE(auth_used,0) AS auth_used FROM attendance WHERE attendance_date = ?");
+    $codes->execute([$today]);
+    $rows = $codes->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as $r) {
+        $codeMap[$r['student_id']] = $r;
+    }
+} catch (Exception $e) {
+    // if columns don't exist or query fails, leave map empty
+}
+
 require_once '../layout/admin/header.php';
 ?>
 
@@ -99,9 +113,13 @@ require_once '../layout/admin/header.php';
         <div class="col-md-9 col-lg-10 mt-4 offset-md-3 offset-lg-2 p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold mb-0">Students</h4>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
-                    <i class="bi bi-plus-circle me-1"></i> Add Student
-                </button>
+                <div>
+                    <a href="students_print.php" target="_blank" class="btn btn-outline-secondary me-2">Print / PDF</a>
+                    <a href="students_export.php" class="btn btn-outline-success me-2">Download Excel</a>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                        <i class="bi bi-plus-circle me-1"></i> Add Student
+                    </button>
+                </div>
             </div>
 
             <!-- ALERTS -->
@@ -125,6 +143,7 @@ require_once '../layout/admin/header.php';
                                 <th>Gender</th>
                                 <th>Phone</th>
                                 <th>Date Joined</th>
+                                <th>Auth Code</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -143,6 +162,19 @@ require_once '../layout/admin/header.php';
                                         <td><?= htmlspecialchars($s['gender']) ?></td>
                                         <td><?= htmlspecialchars($s['phone_number']) ?></td>
                                         <td><?= date('M j, Y', strtotime($s['date_joined'])) ?></td>
+                                        <?php $c = $codeMap[$s['id']] ?? null; ?>
+                                        <td class="text-center">
+                                            <?php if ($c && !empty($c['auth_code'])): ?>
+                                                <?= htmlspecialchars($c['auth_code']) ?>
+                                                <?php if ($c['auth_used']): ?>
+                                                    <span class="badge bg-danger ms-2">Used</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-success ms-2">Unused</span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">N/A</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editModal<?= $s['id'] ?>">Edit</button>
                                             <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#resetModal<?= $s['id'] ?>">Reset Password</button>

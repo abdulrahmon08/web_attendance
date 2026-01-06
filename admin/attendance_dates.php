@@ -28,6 +28,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_date'])) {
         $insert->execute([$student['id'], $date]);
     }
 
+    // Ensure auth columns exist (MySQL 8+ supports IF NOT EXISTS)
+    try {
+        $conn->exec("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS auth_code VARCHAR(6) DEFAULT NULL");
+        $conn->exec("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS auth_used TINYINT(1) DEFAULT 0");
+    } catch (Exception $e) {
+        // ignore if ALTER TABLE not supported; attempt safe fallback
+    }
+
+    // Generate a unique 6-digit authorization code for each student for this attendance date
+    $updateCode = $conn->prepare("UPDATE attendance SET auth_code = ?, auth_used = 0 WHERE student_id = ? AND attendance_date = ?");
+    foreach ($students as $student) {
+        // generate code and ensure it's unique for this date
+        do {
+            $code = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            $check = $conn->prepare("SELECT COUNT(*) FROM attendance WHERE attendance_date = ? AND auth_code = ?");
+            $check->execute([$date, $code]);
+            $exists = $check->fetchColumn();
+        } while ($exists > 0);
+
+        $updateCode->execute([$code, $student['id'], $date]);
+    }
+
     $_SESSION['success'] = "Attendance opened successfully at " . date('h:i A');
     header("Location: attendance_dates.php");
     exit;
