@@ -84,11 +84,15 @@ require_once '../layout/student/header.php';
             <h2 class="mb-0">Dashboard</h2>
             <p class="text-muted">Attendance & punctuality overview</p>
         </div>
-        <div>
+        <div class="d-flex align-items-center">
             <span class="badge bg-info text-dark p-2 px-3 rounded-pill">
                 <i class="bi bi-person-circle"></i>
                 <?= htmlspecialchars($student_name) ?>
             </span>
+            <div class="btn-group ms-3" role="group" aria-label="Export actions">
+                <a href="record_print.php" target="_blank" class="btn btn-outline-secondary btn-sm">Print / PDF</a>
+                <a href="export.php?format=excel" class="btn btn-outline-success btn-sm">Download Excel</a>
+            </div>
         </div>
     </div>
 
