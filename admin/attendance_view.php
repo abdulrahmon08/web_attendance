@@ -54,10 +54,15 @@ require_once '../layout/admin/header.php';
             <!-- ATTENDANCE TABLE -->
             <?php if ($date): ?>
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-bold">
-                    Attendance for <?= htmlspecialchars($date) ?>
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <div class="fw-bold">Attendance for <?= htmlspecialchars($date) ?></div>
+                    <div>
+                        <a href="attendance_view_print.php?date=<?= urlencode($date) ?>" target="_blank" class="btn btn-outline-secondary btn-sm me-2">Print / PDF</a>
+                        <a href="attendance_view_export.php?date=<?= urlencode($date) ?>" class="btn btn-outline-success btn-sm">Download Excel</a>
+                    </div>
                 </div>
                 <div class="card-body p-0">
+                    <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
@@ -94,6 +99,7 @@ require_once '../layout/admin/header.php';
                             <?php endif; ?>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
             <?php endif; ?>
