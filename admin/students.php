@@ -39,14 +39,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_student'])) {
 // ============================
 if (isset($_POST['edit_student'])) {
     $id = $_POST['id'];
-    $name = $_POST['name'];
-    $school_name = $_POST['school_name'];
-    $gender = $_POST['gender'];
-    $phone = $_POST['phone'];
-    $date_joined = $_POST['date_joined'];
+    $student_id = isset($_POST['student_id']) ? trim($_POST['student_id']) : '';
+    $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+    $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+    $school_name = isset($_POST['school_name']) ? trim($_POST['school_name']) : '';
+    $gender = isset($_POST['gender']) ? trim($_POST['gender']) : '';
+    $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
+    $date_joined = isset($_POST['date_joined']) ? trim($_POST['date_joined']) : '';
 
-    $stmt = $conn->prepare("UPDATE students SET name=?, school_name=?, gender=?, phone_number=?, date_joined=? WHERE id=?");
-    $stmt->execute([$name, $school_name, $gender, $phone, $date_joined, $id]);
+    // Build query depending on whether password is being changed
+    if ($password !== '') {
+        $sql = "UPDATE students SET student_id=?, name=?, email_address=?, password=?, school_name=?, gender=?, phone_number=?, date_joined=? WHERE id=?";
+        $params = [$student_id, $name, $email, $password, $school_name, $gender, $phone, $date_joined, $id];
+    } else {
+        $sql = "UPDATE students SET student_id=?, name=?, email_address=?, school_name=?, gender=?, phone_number=?, date_joined=? WHERE id=?";
+        $params = [$student_id, $name, $email, $school_name, $gender, $phone, $date_joined, $id];
+    }
+
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
 
     $_SESSION['success'] = "Student updated successfully.";
     header("Location: students.php");
@@ -88,9 +100,17 @@ if (isset($_GET['delete'])) {
 }
 
 // ============================
-// FETCH STUDENTS
+// FETCH STUDENTS (include grade aggregates)
 // ============================
-$students = $conn->query("SELECT * FROM students ORDER BY date_joined DESC")->fetchAll(PDO::FETCH_ASSOC);
+$stmtStudents = $conn->prepare(
+    "SELECT s.*, COALESCE(SUM(a.grade),0) AS total_grade, COUNT(a.id) AS attendance_count
+     FROM students s
+     LEFT JOIN attendance a ON a.student_id = s.id
+     GROUP BY s.id
+     ORDER BY s.date_joined DESC"
+);
+$stmtStudents->execute();
+$students = $stmtStudents->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch today's auth codes (if any) to display beside students
 $today = date('Y-m-d');
@@ -143,6 +163,7 @@ require_once '../layout/admin/header.php';
                                 <th>Gender</th>
                                 <th>Phone</th>
                                 <th>Date Joined</th>
+                                <th class="text-center">Grade</th>
                                 <th>Auth Code</th>
                                 <th>Actions</th>
                             </tr>
@@ -155,13 +176,21 @@ require_once '../layout/admin/header.php';
                             <?php else: ?>
                                 <?php foreach ($students as $s): ?>
                                     <tr>
-                                        <td class="ps-4 fw-bold"><?= htmlspecialchars($s['student_id']) ?></td>
-                                        <td><?= htmlspecialchars($s['name']) ?></td>
-                                        <td><?= htmlspecialchars($s['email_address']) ?></td>
-                                        <td><?= htmlspecialchars($s['school_name']) ?></td>
-                                        <td><?= htmlspecialchars($s['gender']) ?></td>
-                                        <td><?= htmlspecialchars($s['phone_number']) ?></td>
-                                        <td><?= date('M j, Y', strtotime($s['date_joined'])) ?></td>
+                                            <td class="ps-4 fw-bold"><?= htmlspecialchars($s['student_id']) ?></td>
+                                            <td><?= htmlspecialchars($s['name']) ?></td>
+                                            <td><?= htmlspecialchars($s['email_address']) ?></td>
+                                            <td><?= htmlspecialchars($s['school_name']) ?></td>
+                                            <td><?= htmlspecialchars($s['gender']) ?></td>
+                                            <td><?= htmlspecialchars($s['phone_number']) ?></td>
+                                            <td><?= date('M j, Y', strtotime($s['date_joined'])) ?></td>
+                                            <td class="text-center">
+                                                <?php if ((int)$s['attendance_count'] > 0):
+                                                    $avg = round($s['total_grade'] / max(1, (int)$s['attendance_count']), 1);
+                                                    echo $avg . '%';
+                                                else:
+                                                    echo '<span class="text-muted">N/A</span>';
+                                                endif; ?>
+                                            </td>
                                         <?php $c = $codeMap[$s['id']] ?? null; ?>
                                         <td class="text-center">
                                             <?php if ($c && !empty($c['auth_code'])): ?>
@@ -177,7 +206,7 @@ require_once '../layout/admin/header.php';
                                         </td>
                                         <td>
                                             <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editModal<?= $s['id'] ?>">Edit</button>
-                                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#resetModal<?= $s['id'] ?>">Reset Password</button>
+                                            
                                             <a href="students.php?delete=<?= $s['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this student?')">Delete</a>
                                         </td>
                                     </tr>
@@ -194,8 +223,20 @@ require_once '../layout/admin/header.php';
                                                     <div class="modal-body">
                                                         <input type="hidden" name="id" value="<?= $s['id'] ?>">
                                                         <div class="mb-2">
+                                                            <label class="form-label">Student ID</label>
+                                                            <input type="text" class="form-control" name="student_id" value="<?= htmlspecialchars($s['student_id']) ?>" required>
+                                                        </div>
+                                                        <div class="mb-2">
                                                             <label class="form-label">Full Name</label>
                                                             <input type="text" class="form-control" name="name" value="<?= htmlspecialchars($s['name']) ?>" required>
+                                                        </div>
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Email</label>
+                                                            <input type="email" class="form-control" name="email" value="<?= htmlspecialchars($s['email_address']) ?>" required>
+                                                        </div>
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Password <small class="text-muted">(leave blank to keep current)</small></label>
+                                                            <input type="text" class="form-control" name="password" value="">
                                                         </div>
                                                         <div class="mb-2">
                                                             <label class="form-label">School Name</label>
@@ -225,29 +266,7 @@ require_once '../layout/admin/header.php';
                                         </div>
                                     </div>
 
-                                    <!-- RESET PASSWORD MODAL -->
-                                    <div class="modal fade" id="resetModal<?= $s['id'] ?>" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="post">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Reset Password</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <input type="hidden" name="id" value="<?= $s['id'] ?>">
-                                                        <div class="mb-2">
-                                                            <label class="form-label">New Password</label>
-                                                            <input type="text" class="form-control" name="new_password" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="submit" name="reset_password" class="btn btn-warning">Reset Password</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    
 
                                 <?php endforeach; ?>
                             <?php endif; ?>
