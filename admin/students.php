@@ -158,39 +158,39 @@ require_once '../layout/admin/header.php';
                             <tr>
                                 <th class="ps-4">Student ID</th>
                                 <th>Name</th>
-                                <th>Email</th>
-                                <th>School</th>
-                                <th>Gender</th>
-                                <th>Phone</th>
-                                <th>Date Joined</th>
-                                <th class="text-center">Grade</th>
-                                <th>Auth Code</th>
+                                <th class="d-none d-md-table-cell">Email</th>
+                                <th class="d-none d-md-table-cell">School</th>
+                                <th class="d-none d-md-table-cell">Gender</th>
+                                <th class="d-none d-md-table-cell">Phone</th>
+                                <th class="d-none d-sm-table-cell">Date Joined</th>
+                                <th class="text-center">Avg Grade</th>
+                                <th class="d-none d-sm-table-cell">Auth Code</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($students)): ?>
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">No students found.</td>
+                                    <td colspan="10" class="text-center py-4 text-muted">No students found.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($students as $s): ?>
                                     <tr>
-                                            <td class="ps-4 fw-bold"><?= htmlspecialchars($s['student_id']) ?></td>
-                                            <td><?= htmlspecialchars($s['name']) ?></td>
-                                            <td><?= htmlspecialchars($s['email_address']) ?></td>
-                                            <td><?= htmlspecialchars($s['school_name']) ?></td>
-                                            <td><?= htmlspecialchars($s['gender']) ?></td>
-                                            <td><?= htmlspecialchars($s['phone_number']) ?></td>
-                                            <td><?= date('M j, Y', strtotime($s['date_joined'])) ?></td>
-                                            <td class="text-center">
-                                                <?php if ((int)$s['attendance_count'] > 0):
-                                                    $avg = round($s['total_grade'] / max(1, (int)$s['attendance_count']), 1);
-                                                    echo $avg . '%';
-                                                else:
-                                                    echo '<span class="text-muted">N/A</span>';
-                                                endif; ?>
-                                            </td>
+                                        <td class="ps-2 fw-bold"><?= htmlspecialchars($s['student_id']) ?></td>
+                                        <td><?= htmlspecialchars($s['name']) ?></td>
+                                        <td class="d-none d-md-table-cell"><?= htmlspecialchars($s['email_address']) ?></td>
+                                        <td class="d-none d-md-table-cell"><?= htmlspecialchars($s['school_name']) ?></td>
+                                        <td class="d-none d-md-table-cell"><?= htmlspecialchars($s['gender']) ?></td>
+                                        <td class="d-none d-md-table-cell"><?= htmlspecialchars($s['phone_number']) ?></td>
+                                        <td class="d-none d-sm-table-cell"><?= date('M j, Y', strtotime($s['date_joined'])) ?></td>
+                                        <td class="text-center">
+                                            <?php if ((int)$s['attendance_count'] > 0):
+                                                $avg = round($s['total_grade'] / max(1, (int)$s['attendance_count']), 1);
+                                                echo $avg . '%';
+                                            else:
+                                                echo '<span class="text-muted">N/A</span>';
+                                            endif; ?>
+                                        </td>
                                         <?php $c = $codeMap[$s['id']] ?? null; ?>
                                         <td class="text-center">
                                             <?php if ($c && !empty($c['auth_code'])): ?>
