@@ -92,12 +92,12 @@ $student = $_SESSION['student_id'] ? $_SESSION['student_data'] : null;
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-calendar-check"></i> Student Attendance System
-            </a>
-            <button class="navbar-toggler d-md-none" type="button" id="sidebarToggle" aria-label="Toggle sidebar">
-                <i class="bi bi-list"></i>
-            </button>
+                    <button class="btn btn-primary d-md-none me-2" id="sidebarToggle" aria-label="Toggle sidebar">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <a class="navbar-brand" href="#">
+                        <i class="bi bi-calendar-check"></i> Student Attendance System
+                    </a>
 
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">

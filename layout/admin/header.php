@@ -91,10 +91,10 @@ $admin = $_SESSION['admin_id'] ? $_SESSION['role'] : null;
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
     <div class="container-fluid">
-        <a class="navbar-brand w-50" href="#"><i class="bi bi-calendar-check"></i> Admin Attendance System</a>
         <button class="btn btn-primary d-md-none" id="sidebarToggle">
-            <i class="bi bi-list"></i> Menu
+            <i class="bi bi-list"></i> 
         </button>
+        <a class="navbar-brand w-75" href="#"><i class="bi bi-calendar-check"></i> Admin Attendance System</a>
     </div>
 </nav>
 
