@@ -163,7 +163,7 @@ require_once '../layout/admin/header.php';
                                 <th class="d-none d-md-table-cell">Gender</th>
                                 <th class="d-none d-md-table-cell">Phone</th>
                                 <th class="d-none d-sm-table-cell">Date Joined</th>
-                                <th class="text-center">Avg Grade</th>
+                                <th class="text-center">Grade</th>
                                 <th class="d-none d-sm-table-cell">Auth Code</th>
                                 <th>Actions</th>
                             </tr>
