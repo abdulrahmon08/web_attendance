@@ -84,6 +84,13 @@ $dates = $conn->query("
     ORDER BY attendance_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Auto-close any attendance that has passed the 1 hour window
+try {
+    $conn->exec("UPDATE attendance_dates SET status='Closed' WHERE status='Open' AND TIMESTAMPADD(HOUR,1,opened_at) <= NOW()");
+} catch (Exception $e) {
+    // ignore failures to avoid breaking view
+}
+
 require_once '../layout/admin/header.php';
 ?>
 
@@ -113,7 +120,7 @@ require_once '../layout/admin/header.php';
     <small class="text-muted">
         Grading Window: 0–15m: 100% | 16–30m: 75% | 31–45m: 50% | 46–60m: 25%
     </small>
-    <!-- ATTENDANCE TABLE -->
+    
     <!-- ATTENDANCE TABLE -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0 table-responsive">
@@ -140,8 +147,12 @@ require_once '../layout/admin/header.php';
                                 <td class="fw-bold"><?= $d['attendance_date'] ?></td>
                                 <td><?= date('h:i A', strtotime($d['opened_at'])) ?></td>
                                 <td>
-                                    <span class="badge bg-<?= $d['status'] === 'Open' ? 'success' : 'secondary' ?>">
-                                        <?= $d['status'] ?>
+                                    <?php
+                                        $isOpen = (strtotime($d['opened_at']) <= time() && strtotime($d['close_time']) > time());
+                                        $displayStatus = $isOpen ? 'Open' : 'Closed';
+                                    ?>
+                                    <span class="badge bg-<?= $displayStatus === 'Open' ? 'success' : 'secondary' ?>">
+                                        <?= $displayStatus ?>
                                     </span>
                                 </td>
                                 <td>

@@ -19,73 +19,8 @@ $admin = $_SESSION['admin_id'] ? $_SESSION['role'] : null;
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <!-- Bootstrap Icons -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
-<style>
-    body {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        background-color: #f8f9fa;
-    }
-    .main-content {
-        flex: 1;
-        padding: 2rem 1rem;
-        margin-left: 0;
-        transition: margin-left 0.3s;
-    }
-    .navbar-brand {
-        font-weight: bold;
-    }
-    .sidebar {
-        min-height: calc(100vh - 56px);
-        background-color: #fff;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        transition: left 0.3s;
-    }
-    .nav-link {
-        color: #495057;
-        padding: 0.75rem 1rem;
-        border-radius: 0.25rem;
-        margin: 0.25rem 0;
-    }
-    .nav-link:hover{
-        background-color: #0d6efd;
-        color: #fff;
-    }
-    .stat-card {
-        transition: transform 0.2s;
-    }
-    .stat-card:hover {
-        transform: translateY(-5px);
-    }
-
-    /* Small screen sidebar */
-    @media (max-width: 767.98px) {
-        .sidebar {
-            position: fixed;
-            top: 56px;
-            left: -250px;
-            width: 250px;
-            z-index: 1030;
-        }
-        .sidebar.show {
-            left: 0;
-        }
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 56px;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1020;
-        }
-        .overlay.show {
-            display: block;
-        }
-    }
-</style>
+<!-- CSS -->
+ <link rel="stylesheet" href=".././assets/css/admin.css">
 </head>
 <body>
 

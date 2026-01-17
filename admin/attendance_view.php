@@ -6,10 +6,26 @@ $date = $_GET['date'] ?? null;
 
 // Fetch all hosted attendance dates
 $dates = $conn->query("
-    SELECT attendance_date 
+    SELECT attendance_date, opened_at, status, TIMESTAMPADD(HOUR,1,opened_at) AS close_time
     FROM attendance_dates 
     ORDER BY attendance_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Auto-close any attendance that has passed the 1 hour window
+
+// If a specific date is selected, fetch its status info
+$dateInfo = null;
+if ($date) {
+    $stmtInfo = $conn->prepare("SELECT attendance_date, opened_at, status, TIMESTAMPADD(HOUR,1,opened_at) AS close_time FROM attendance_dates WHERE attendance_date = ? LIMIT 1");
+    $stmtInfo->execute([$date]);
+    $dateInfo = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+}
+// Auto-close any attendance that has passed the 1 hour window
+try {
+    $conn->exec("UPDATE attendance_dates SET status='Closed' WHERE status='Open' AND TIMESTAMPADD(HOUR,1,opened_at) <= NOW()");
+} catch (Exception $e) {
+    // ignore failures to avoid breaking view
+}
 
 // If a date is selected, fetch attendance records
 $records = [];
@@ -42,9 +58,14 @@ require_once '../layout/admin/header.php';
                         <p class="text-muted">No attendance dates hosted yet.</p>
                     <?php else: ?>
                         <?php foreach ($dates as $d): ?>
+                            <?php
+                                $isOpen = (strtotime($d['opened_at']) <= time() && strtotime($d['close_time']) > time());
+                                $displayStatus = $isOpen ? 'Open' : 'Closed';
+                            ?>
                             <a href="attendance_view.php?date=<?= $d['attendance_date'] ?>"
                                class="btn btn-outline-primary btn-sm me-2 mb-2">
                                 <?= $d['attendance_date'] ?>
+                                <span class="badge ms-2 bg-<?= $displayStatus === 'Open' ? 'success' : 'secondary' ?>"><?= htmlspecialchars($displayStatus) ?></span>
                             </a>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -55,7 +76,21 @@ require_once '../layout/admin/header.php';
             <?php if ($date): ?>
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <div class="fw-bold">Attendance for <?= htmlspecialchars($date) ?></div>
+                    <div class="fw-bold">
+                        Attendance for <?= htmlspecialchars($date) ?>
+                        <?php if (!empty($dateInfo)): ?>
+                            <?php
+                                $dateInfoIsOpen = (strtotime($dateInfo['opened_at']) <= time() && strtotime($dateInfo['close_time']) > time());
+                                $dateInfoStatus = $dateInfoIsOpen ? 'Open' : 'Closed';
+                            ?>
+                            <span class="badge ms-2 bg-<?= $dateInfoStatus === 'Open' ? 'success' : 'secondary' ?>"><?= htmlspecialchars($dateInfoStatus) ?></span>
+                            <?php if ($dateInfoStatus === 'Open'): ?>
+                                <small class="text-muted ms-2">Closes at <?= date('h:i A', strtotime($dateInfo['close_time'])) ?></small>
+                            <?php else: ?>
+                                <small class="text-muted ms-2">Closed at <?= date('h:i A', strtotime($dateInfo['close_time'])) ?></small>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
                     <div>
                         <a href="attendance_view_print.php?date=<?= urlencode($date) ?>" target="_blank" class="btn btn-outline-secondary btn-sm me-2">Print / PDF</a>
                         <a href="attendance_view_export.php?date=<?= urlencode($date) ?>" class="btn btn-outline-success btn-sm">Download Excel</a>
