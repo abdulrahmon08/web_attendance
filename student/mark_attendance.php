@@ -95,7 +95,7 @@ require_once '../layout/student/header.php';
                             <?php endif; ?>
 
                             <?php if (!$is_weekday): ?>
-                                <div class="alert alert-info">Weekend: Attendance not required.</div>
+                                <div class="alert alert-info">It's weekend, marking attendance is not allowed.</div>
                                 <a href="index.php" class="btn btn-outline-secondary mt-3">Back to Dashboard</a>
 
                             <?php elseif (!$attendance_open && !$current_status): ?>
