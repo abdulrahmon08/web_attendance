@@ -81,6 +81,30 @@ if ($date) {
     $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// ============================
+// FETCH DATA FOR GRAPHS
+// ============================
+// Last 7 days attendance summary
+$graphData = $conn->query("
+    SELECT attendance_date,
+           SUM(status = 'Present') AS present,
+           SUM(status = 'Absent') AS absent
+    FROM attendance
+    WHERE attendance_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY attendance_date
+    ORDER BY attendance_date
+")->fetchAll(PDO::FETCH_ASSOC);
+
+$graph_labels = [];
+$graph_present = [];
+$graph_absent = [];
+
+foreach ($graphData as $g) {
+    $graph_labels[] = $g['attendance_date'];
+    $graph_present[] = (int)$g['present'];
+    $graph_absent[] = (int)$g['absent'];
+}
+
 require_once '../layout/admin/header.php';
 ?>
 
@@ -165,7 +189,7 @@ require_once '../layout/admin/header.php';
         </div>
 
         <!-- ATTENDANCE TABLE -->
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-body p-0 table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
@@ -193,6 +217,15 @@ require_once '../layout/admin/header.php';
                 </table>
             </div>
         </div>
+
+        <!-- GRAPHS (DAILY TRENDS) -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold">📈 Daily Attendance Trends (Last 7 Days)</div>
+            <div class="card-body">
+                <canvas id="attendanceChart" height="120"></canvas>
+            </div>
+        </div>
+
     <?php endif; ?>
 </div>
 
@@ -217,6 +250,40 @@ if (countdown && countdown.dataset.close) {
         countdown.textContent = `Closes in ${mins}m ${secs}s`;
     }, 1000);
 }
+</script>
+
+<!-- CHART.JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('attendanceChart').getContext('2d');
+const attendanceChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: <?= json_encode($graph_labels) ?>,
+        datasets: [
+            {
+                label: 'Present',
+                data: <?= json_encode($graph_present) ?>,
+                backgroundColor: 'rgba(25, 135, 84, 0.7)'
+            },
+            {
+                label: 'Absent',
+                data: <?= json_encode($graph_absent) ?>,
+                backgroundColor: 'rgba(220, 53, 69, 0.7)'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+            y: { beginAtZero: true, precision:0 },
+        }
+    }
+});
 </script>
 
 <?php require_once '../layout/admin/footer.php'; ?>
