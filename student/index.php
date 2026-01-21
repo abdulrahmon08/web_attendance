@@ -72,11 +72,30 @@ $stmt = $conn->prepare("
 ");
 $stmt->execute([$student_id]);
 $recent_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// =========================
+// 6. CURRENT OPEN ATTENDANCE (FOR COUNTDOWN)
+// =========================
+$stmtOpen = $conn->prepare("
+    SELECT opened_at, TIMESTAMPADD(HOUR,1,opened_at) AS close_time
+    FROM attendance_dates
+    WHERE attendance_date = (
+        SELECT attendance_date
+        FROM attendance
+        WHERE student_id = ? 
+        ORDER BY attendance_date DESC
+        LIMIT 1
+    ) AND status='Open'
+");
+$stmtOpen->execute([$student_id]);
+$openAttendance = $stmtOpen->fetch(PDO::FETCH_ASSOC);
+$hasOpenAttendance = !empty($openAttendance);
+
 require_once '../layout/student/header.php';
 ?>
 
 <!-- MAIN CONTENT -->
-<div class=" offset-md-3 offset-lg-2 p-4" id="mainContent">
+<div class="offset-md-3 offset-lg-2 p-4" id="mainContent">
 
     <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -96,9 +115,16 @@ require_once '../layout/student/header.php';
         </div>
     </div>
 
+    <!-- LIVE COUNTDOWN -->
+    <?php if ($hasOpenAttendance): ?>
+        <div class="alert alert-warning fw-bold mb-4" id="countdownAlert">
+            Attendance is <span class="text-success">OPEN</span> — Time remaining: <span id="countdownTimer"></span>
+        </div>
+    <?php endif; ?>
+
     <!-- STAT CARDS -->
     <div class="row mb-4">
-        
+
         <div class="col-12 col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
@@ -112,6 +138,7 @@ require_once '../layout/student/header.php';
                 </div>
             </div>
         </div>
+
         <div class="col-12 col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
@@ -125,6 +152,7 @@ require_once '../layout/student/header.php';
                 </div>
             </div>
         </div>
+
         <div class="col-12 col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
@@ -138,11 +166,12 @@ require_once '../layout/student/header.php';
                 </div>
             </div>
         </div>
+
         <div class="col-12 col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-muted small fw-bold"> TOTAL SCORE</h6>
+                        <h6 class="text-muted small fw-bold">TOTAL SCORE</h6>
                         <h3><?= $grade_percentage ?>%</h3>
                     </div>
                     <div class="bg-primary bg-opacity-10 p-3 rounded">
@@ -219,15 +248,48 @@ require_once '../layout/student/header.php';
 </div>
 </div>
 
+<!-- COUNTDOWN SCRIPT -->
+<?php if ($hasOpenAttendance): ?>
+<script>
+const countdownEl = document.getElementById('countdownTimer');
+
+// Convert PHP datetime to ISO format
+const closeTime = new Date("<?= date('c', strtotime($openAttendance['close_time'])) ?>").getTime();
+
+function updateCountdown() {
+    const now = new Date().getTime();
+    const diff = closeTime - now;
+
+    if(diff <= 0){
+        countdownEl.textContent = "Attendance Closed";
+        const alertBox = document.getElementById('countdownAlert');
+        alertBox.classList.remove('alert-warning');
+        alertBox.classList.add('alert-secondary');
+        alertBox.querySelector('span.text-success').textContent = 'CLOSED';
+        clearInterval(interval);
+        return;
+    }
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    countdownEl.textContent = `${hours > 0 ? hours + 'h ' : ''}${mins}m ${secs}s`;
+}
+
+updateCountdown();
+const interval = setInterval(updateCountdown, 1000);
+</script>
+<?php endif; ?>
+
 <!-- Sidebar toggle JS -->
 <script>
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebar = document.getElementById('sidebar');
 
-    sidebarToggle.addEventListener('click', () => {
-        sidebar.classList.toggle('active');
-    });
+sidebarToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+});
 </script>
-
 
 <?php require_once '../layout/student/footer.php'; ?>

@@ -27,8 +27,8 @@ $current_status = null;
 $grade = null;
 $check_in_time = null;
 $checkout_time = null;
-$remaining_minutes = null;
 $can_checkout = false;
+$closeTime = null;
 
 if ($attendance_date) {
     $stmt = $conn->prepare("
@@ -48,12 +48,9 @@ if ($attendance_date) {
 
     if ($attendance_open) {
         $opened_at = strtotime($attendance_date['opened_at']);
-        $now = time();
-        $diff = $now - $opened_at;
-        $remaining_minutes = max(0, 60 - floor($diff / 60));
-
-        if ($diff >= 3600) {
-            $attendance_open = false; // auto-close after 1 hour
+        $closeTime = $opened_at + 3600; // auto-close after 1 hour
+        if (time() > $closeTime) {
+            $attendance_open = false; // already closed
         }
     }
 
@@ -68,9 +65,7 @@ require_once '../layout/student/header.php';
 
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar omitted for brevity -->
-
-        <div class="col-md-9 col-lg-10 p-4  offset-md-3 offset-lg-2 p-4">
+        <div class="col-md-9 col-lg-10 p-4 offset-md-3 offset-lg-2">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 class="mb-0">Mark Attendance</h2>
@@ -128,12 +123,13 @@ require_once '../layout/student/header.php';
                                 <i class="bi bi-calendar2-check text-primary mb-3" style="font-size:4rem;"></i>
                                 <div class="alert alert-danger mb-3">Your current status is <strong>Absent</strong>.</div>
 
-                                <?php if ($remaining_minutes <= 0): ?>
+                                <?php if (!$attendance_open || time() > $closeTime): ?>
                                     <div class="alert alert-danger">Attendance window has closed. Grade: 0%</div>
                                 <?php else: ?>
                                     <h4>Confirm Attendance</h4>
                                     <p class="small text-muted mb-3">
-                                        Time remaining to mark attendance: <?= $remaining_minutes ?> min
+                                        Time remaining to mark attendance: 
+                                        <span id="attendanceCountdown"></span>
                                     </p>
                                     <form action="mark_attendance_process.php" method="post" class="text-start">
                                         <div class="mb-3">
@@ -160,5 +156,33 @@ require_once '../layout/student/header.php';
         </div>
     </div>
 </div>
+
+<?php if ($attendance_open && $closeTime): ?>
+<script>
+// Countdown logic
+const countdownEl = document.getElementById('attendanceCountdown');
+const closeTime = <?= $closeTime ?> * 1000; // PHP timestamp to JS milliseconds
+
+function updateCountdown() {
+    const now = Date.now();
+    const diff = closeTime - now;
+
+    if(diff <= 0){
+        countdownEl.textContent = "Attendance Closed";
+        clearInterval(interval);
+        return;
+    }
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    countdownEl.textContent = `${hours > 0 ? hours + 'h ' : ''}${mins}m ${secs}s`;
+}
+
+updateCountdown();
+const interval = setInterval(updateCountdown, 1000);
+</script>
+<?php endif; ?>
 
 <?php require_once '../layout/student/footer.php'; ?>

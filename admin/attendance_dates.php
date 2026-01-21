@@ -8,9 +8,8 @@ date_default_timezone_set('Africa/Lagos');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_date'])) {
 
     $date = $_POST['attendance_date'];
-    $now = date('Y-m-d H:i:s'); // timestamp when admin opens attendance
+    $now  = date('Y-m-d H:i:s');
 
-    // Insert attendance date with open timestamp
     $stmt = $conn->prepare("
         INSERT INTO attendance_dates (attendance_date, opened_at, status)
         VALUES (?, ?, 'Open')
@@ -18,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_date'])) {
     ");
     $stmt->execute([$date, $now]);
 
-    // Insert default 'Absent' for all students
     $students = $conn->query("SELECT id FROM students")->fetchAll(PDO::FETCH_ASSOC);
     foreach ($students as $student) {
         $insert = $conn->prepare("
@@ -28,24 +26,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_date'])) {
         $insert->execute([$student['id'], $date]);
     }
 
-    // Ensure auth columns exist (MySQL 8+ supports IF NOT EXISTS)
     try {
         $conn->exec("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS auth_code VARCHAR(6) DEFAULT NULL");
         $conn->exec("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS auth_used TINYINT(1) DEFAULT 0");
-    } catch (Exception $e) {
-        // ignore if ALTER TABLE not supported; attempt safe fallback
-    }
+    } catch (Exception $e) {}
 
-    // Generate a unique 6-digit authorization code for each student for this attendance date
-    $updateCode = $conn->prepare("UPDATE attendance SET auth_code = ?, auth_used = 0 WHERE student_id = ? AND attendance_date = ?");
+    $updateCode = $conn->prepare("
+        UPDATE attendance 
+        SET auth_code = ?, auth_used = 0 
+        WHERE student_id = ? AND attendance_date = ?
+    ");
+
     foreach ($students as $student) {
-        // generate code and ensure it's unique for this date
         do {
             $code = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
-            $check = $conn->prepare("SELECT COUNT(*) FROM attendance WHERE attendance_date = ? AND auth_code = ?");
+            $check = $conn->prepare("
+                SELECT COUNT(*) FROM attendance
+                WHERE attendance_date = ? AND auth_code = ?
+            ");
             $check->execute([$date, $code]);
-            $exists = $check->fetchColumn();
-        } while ($exists > 0);
+        } while ($check->fetchColumn() > 0);
 
         $updateCode->execute([$code, $student['id'], $date]);
     }
@@ -61,11 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_date'])) {
 if (isset($_GET['delete'])) {
     $date = $_GET['delete'];
 
-    // Delete attendance records first
     $stmt = $conn->prepare("DELETE FROM attendance WHERE attendance_date = ?");
     $stmt->execute([$date]);
 
-    // Delete attendance date
     $stmt = $conn->prepare("DELETE FROM attendance_dates WHERE attendance_date = ?");
     $stmt->execute([$date]);
 
@@ -78,17 +76,45 @@ if (isset($_GET['delete'])) {
 // FETCH ALL ATTENDANCE DATES
 // ============================
 $dates = $conn->query("
-    SELECT attendance_date, opened_at, status,
+    SELECT attendance_date, opened_at,
            TIMESTAMPADD(HOUR,1,opened_at) AS close_time
     FROM attendance_dates
     ORDER BY attendance_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// Auto-close any attendance that has passed the 1 hour window
-try {
-    $conn->exec("UPDATE attendance_dates SET status='Closed' WHERE status='Open' AND TIMESTAMPADD(HOUR,1,opened_at) <= NOW()");
-} catch (Exception $e) {
-    // ignore failures to avoid breaking view
+// ============================
+// SYNC DB STATUS (DATE + TIME AWARE)
+// ============================
+$today = date('Y-m-d');
+
+foreach ($dates as $row) {
+    $isToday = ($row['attendance_date'] === $today);
+    $isOpen = (
+        $isToday &&
+        strtotime($row['opened_at']) <= time() &&
+        strtotime($row['close_time']) > time()
+    );
+    $newStatus = $isOpen ? 'Open' : 'Closed';
+    $sync = $conn->prepare("UPDATE attendance_dates SET status = ? WHERE attendance_date = ?");
+    $sync->execute([$newStatus, $row['attendance_date']]);
+}
+
+// ============================
+// CALCULATE SUMMARY STATS
+// ============================
+$summary = ['total'=>0, 'present'=>0, 'absent'=>0];
+foreach ($dates as $d) {
+    $stmtSummary = $conn->prepare("
+        SELECT
+            COUNT(*) AS total,
+            SUM(status='Present') AS present,
+            SUM(status='Absent') AS absent
+        FROM attendance
+        WHERE attendance_date = ?
+    ");
+    $stmtSummary->execute([$d['attendance_date']]);
+    $s = $stmtSummary->fetch(PDO::FETCH_ASSOC);
+    $summary[$d['attendance_date']] = $s;
 }
 
 require_once '../layout/admin/header.php';
@@ -98,15 +124,12 @@ require_once '../layout/admin/header.php';
 
     <h4 class="mb-4 fw-bold">Host Attendance</h4>
 
-    <!-- SUCCESS MESSAGE -->
     <?php if (!empty($_SESSION['success'])): ?>
         <div class="alert alert-success">
-            <?= $_SESSION['success'];
-            unset($_SESSION['success']); ?>
+            <?= $_SESSION['success']; unset($_SESSION['success']); ?>
         </div>
     <?php endif; ?>
 
-    <!-- OPEN ATTENDANCE FORM -->
     <form method="post" class="row g-3 mb-4">
         <div class="col-md-4">
             <input type="date" name="attendance_date" class="form-control" required>
@@ -117,12 +140,12 @@ require_once '../layout/admin/header.php';
             </button>
         </div>
     </form>
+
     <small class="text-muted">
         Grading Window: 0–15m: 100% | 16–30m: 75% | 31–45m: 50% | 46–60m: 25%
     </small>
-    
-    <!-- ATTENDANCE TABLE -->
-    <div class="card border-0 shadow-sm">
+
+    <div class="card border-0 shadow-sm mt-3">
         <div class="card-body p-0 table-responsive">
             <table class="table table-hover table-sm align-middle mb-0 text-nowrap w-100">
                 <thead class="table-light small">
@@ -131,27 +154,34 @@ require_once '../layout/admin/header.php';
                         <th>Time Opened</th>
                         <th>Status</th>
                         <th>Closes At</th>
+                        <th>Summary (P/A/T)</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody class="small">
                     <?php if (empty($dates)): ?>
                         <tr>
-                            <td colspan="5" class="text-center py-2 text-muted">
+                            <td colspan="6" class="text-center py-2 text-muted">
                                 No attendance opened yet.
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($dates as $d): ?>
+                            <?php
+                                $isToday = ($d['attendance_date'] === $today);
+                                $isOpen = (
+                                    $isToday &&
+                                    strtotime($d['opened_at']) <= time() &&
+                                    strtotime($d['close_time']) > time()
+                                );
+                                $displayStatus = $isOpen ? 'Open' : 'Closed';
+                                $s = $summary[$d['attendance_date']] ?? ['total'=>0,'present'=>0,'absent'=>0];
+                            ?>
                             <tr>
                                 <td class="fw-bold"><?= $d['attendance_date'] ?></td>
                                 <td><?= date('h:i A', strtotime($d['opened_at'])) ?></td>
                                 <td>
-                                    <?php
-                                        $isOpen = (strtotime($d['opened_at']) <= time() && strtotime($d['close_time']) > time());
-                                        $displayStatus = $isOpen ? 'Open' : 'Closed';
-                                    ?>
-                                    <span class="badge bg-<?= $displayStatus === 'Open' ? 'success' : 'secondary' ?>">
+                                    <span class="badge bg-<?= $displayStatus==='Open'?'success':'secondary' ?>">
                                         <?= $displayStatus ?>
                                     </span>
                                 </td>
@@ -159,11 +189,22 @@ require_once '../layout/admin/header.php';
                                     <small class="text-muted"><?= date('h:i A', strtotime($d['close_time'])) ?></small>
                                 </td>
                                 <td>
-                                    <a href="?delete=<?= $d['attendance_date'] ?>"
-                                        class="btn btn-sm btn-danger"
-                                        onclick="return confirm('Remove this attendance date?')">
-                                        <i class="bi bi-trash"></i> Remove
-                                    </a>
+                                    <span class="badge bg-success">P: <?= $s['present'] ?></span>
+                                    <span class="badge bg-danger">A: <?= $s['absent'] ?></span>
+                                    <span class="badge bg-secondary">T: <?= $s['total'] ?></span>
+                                </td>
+                                <td>
+                                    <?php if ($displayStatus === 'Open'): ?>
+                                        <button class="btn btn-sm btn-secondary" disabled>
+                                            <i class="bi bi-lock"></i> Locked
+                                        </button>
+                                    <?php else: ?>
+                                        <a href="?delete=<?= $d['attendance_date'] ?>"
+                                           class="btn btn-sm btn-danger"
+                                           onclick="return confirm('Remove this attendance date?')">
+                                            <i class="bi bi-trash"></i> Remove
+                                        </a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -172,7 +213,34 @@ require_once '../layout/admin/header.php';
             </table>
         </div>
     </div>
-
-
 </div>
 
+<!-- LIVE COUNTDOWN SCRIPT -->
+<script>
+document.querySelectorAll('tr').forEach(row => {
+    const statusBadge = row.querySelector('span.badge');
+    if (statusBadge && statusBadge.textContent === 'Open') {
+        const closeTimeEl = row.querySelector('td small');
+        if (!closeTimeEl) return;
+        const closeTime = new Date(closeTimeEl.textContent).getTime();
+        const countdownEl = document.createElement('div');
+        countdownEl.className = 'text-muted small';
+        row.querySelector('td:nth-child(3)').appendChild(countdownEl);
+
+        const interval = setInterval(() => {
+            const now = new Date().getTime();
+            const diff = closeTime - now;
+            if(diff<=0){
+                countdownEl.textContent = 'Attendance Closed';
+                statusBadge.textContent = 'Closed';
+                statusBadge.className = 'badge bg-secondary';
+                clearInterval(interval);
+                return;
+            }
+            const mins = Math.floor(diff/60000);
+            const secs = Math.floor((diff%60000)/1000);
+            countdownEl.textContent = `Closes in ${mins}m ${secs}s`;
+        },1000);
+    }
+});
+</script>
